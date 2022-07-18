@@ -1,0 +1,73 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: otus
+  labels:
+    name: otus
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8baselesson1
+  namespace: otus
+  labels:
+    app: k8baselesson1
+spec:
+  selector:
+    matchLabels:
+      app: k8baselesson1
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: k8baselesson1
+    spec:
+      containers:
+        - image: voidpropphet/otus:k8baselesson1
+          args: ["-TAG=k8baselesson1"]
+          name: k8baselesson1container
+          ports:
+            - containerPort: 8000
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8baselesson1service
+  namespace: otus
+  labels:
+    app: k8baselesson1
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+  selector:
+    app: k8baselesson1
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: k8baselesson1ingress
+  namespace: otus
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      rewrite /otusapp/kazartsev/(\w+)$ /$2 permanent;
+spec:
+  rules:
+    - host: arch.homework
+      http:
+        paths:
+          - backend:
+              service:
+                name: k8baselesson1service
+                port:
+                  number: 8000
+            pathType: Prefix
+            path: /health
